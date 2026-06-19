@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>シニア犬用 フードバランス計算アプリ</title>
+    <!-- Tailwind CSS (軽量かつモダンなデザイン用) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* タップ時の青い選択ハイライトを消す（スマホ用） */
+        -webkit-tap-highlight-color: transparent;
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex items-center justify-center p-4">
+
+    <div class="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md border border-slate-100">
+        <!-- ヘッダー -->
+        <div class="text-center mb-6">
+            <span class="text-4xl">🐶</span>
+            <h1 class="text-xl font-bold text-slate-800 mt-2">愛犬フードバランス計算</h1>
+            <p class="text-xs text-slate-500 mt-1">15歳のシニア犬に合わせた栄養・水分設計</p>
+        </div>
+        
+        <!-- 入力エリア -->
+        <div class="mb-5">
+            <label for="targetCalorie" class="block text-sm font-semibold text-slate-700 mb-2">
+                1日の目標カロリー（kcal）
+            </label>
+            <div class="relative">
+                <input 
+                    type="number" 
+                    id="targetCalorie" 
+                    pattern="[0-9]*"
+                    inputmode="numeric"
+                    placeholder="例: 150" 
+                    class="w-full px-4 py-3.5 text-lg border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent transition-all"
+                >
+                <span class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 font-medium">kcal</span>
+            </div>
+        </div>
+        
+        <!-- 計算ボタン (スマホでタップしやすいよう大きめ) -->
+        <button 
+            onclick="calculateFood()" 
+            class="w-full bg-emerald-500 active:bg-emerald-600 hover:bg-emerald-600 text-white font-bold py-4 px-6 rounded-xl text-lg shadow-md shadow-emerald-100 transition-all active:scale-[0.98]"
+        >
+            最適な配分を計算する
+        </button>
+        
+        <!-- 結果表示エリア (初期状態は非表示) -->
+        <div class="mt-8 hidden" id="resultSection">
+            <h2 class="text-sm font-bold text-slate-500 tracking-wider uppercase mb-3 flex items-center">
+                <span class="mr-1.5">📊</span> 1日のトッピング・ごはん配分
+            </h2>
+            
+            <div class="space-y-3">
+                <!-- ドライフード -->
+                <div class="flex items-center justify-between p-3.5 bg-slate-50 rounded-xl border border-slate-100">
+                    <div>
+                        <p class="font-bold text-slate-700 text-sm">ドライフード <span class="text-xs text-slate-400 font-normal">(主食)</span></p>
+                        <p class="text-xs text-emerald-600 font-medium mt-0.5" id="cal-dry">0 kcal</p>
+                    </div>
+                    <p class="text-xl font-extrabold text-blue-600" id="weight-dry">0g</p>
+                </div>
+                
+                <!-- おかゆ -->
+                <div class="flex items-center justify-between p-3.5 bg-slate-50 rounded-xl border border-slate-100">
+                    <div>
+                        <p class="font-bold text-slate-700 text-sm">おかゆ <span class="text-xs text-slate-400 font-normal">(水分・消化ケア)</span></p>
+                        <p class="text-xs text-emerald-600 font-medium mt-0.5" id="cal-porridge">0 kcal</p>
+                    </div>
+                    <p class="text-xl font-extrabold text-blue-600" id="weight-porridge">0g</p>
+                </div>
+                
+                <!-- 鶏ささみ -->
+                <div class="flex items-center justify-between p-3.5 bg-slate-50 rounded-xl border border-slate-100">
+                    <div>
+                        <p class="font-bold text-slate-700 text-sm">鶏ささみ <span class="text-xs text-rose-500 font-normal">(トッピング・上限10g)</span></p>
+                        <p class="text-xs text-emerald-600 font-medium mt-0.5" id="cal-sasami">0 kcal</p>
+                    </div>
+                    <p class="text-xl font-extrabold text-blue-600" id="weight-sasami">0g</p>
+                </div>
+                
+                <!-- かまぼこ -->
+                <div class="flex items-center justify-between p-3.5 bg-slate-50 rounded-xl border border-slate-100">
+                    <div>
+                        <p class="font-bold text-slate-700 text-sm">かまぼこ <span class="text-xs text-rose-500 font-normal">(風味づけ・上限10g)</span></p>
+                        <p class="text-xs text-emerald-600 font-medium mt-0.5" id="cal-kamaboko">0 kcal</p>
+                    </div>
+                    <p class="text-xl font-extrabold text-blue-600" id="weight-kamaboko">0g</p>
+                </div>
+
+                <!-- 合計総重量 (目立たせるデザイン) -->
+                <div class="flex items-center justify-between p-4 bg-amber-50 rounded-xl border border-amber-200 mt-4">
+                    <p class="font-extrabold text-amber-900 text-base">⚖️ 総重量（1日分の合計）</p>
+                    <p class="text-2xl font-black text-amber-600" id="weight-total">0g</p>
+                </div>
+            </div>
+
+            <!-- 注意書き -->
+            <div class="mt-5 p-3.5 bg-slate-50 rounded-xl text-xs text-slate-500 leading-relaxed border-l-4 border-amber-400">
+                <span class="font-bold text-amber-700">【シニア犬のための安心設計】</span><br>
+                ・<strong>かまぼこ・鶏ささみ：</strong> 腎臓や消化器への負担、塩分を考慮し、それぞれ最大10gに制限しています。<br>
+                ・残りの必要なカロリーは、栄養バランスに優れた<strong>ドライフード(7割)</strong>と、水分を補給できる<strong>おかゆ(3割)</strong>で自動補填されます。
+            </div>
+        </div>
+    </div>
+
+    <!-- カスタム通知用メッセージボックス (alert()回避) -->
+    <div id="customAlert" class="fixed inset-x-4 top-4 bg-rose-500 text-white p-4 rounded-xl shadow-lg transform -translate-y-32 transition-transform duration-300 ease-out z-50 text-center font-bold">
+        数値を正しく入力してください。
+    </div>
+
+    <script>
+        function showAlert(message) {
+            const alertBox = document.getElementById('customAlert');
+            alertBox.innerText = message;
+            alertBox.classList.remove('-translate-y-32');
+            alertBox.classList.add('translate-y-0');
+            setTimeout(() => {
+                alertBox.classList.remove('translate-y-0');
+                alertBox.classList.add('-translate-y-32');
+            }, 3000);
+        }
+
+        function calculateFood() {
+            const inputVal = document.getElementById('targetCalorie').value;
+            const target = parseFloat(inputVal);
+            
+            if (!target || target <= 0) {
+                showAlert('正しい目標カロリーを入力してください。');
+                return;
+            }
+
+            // キーボードを閉じる (スマホ用UI対応)
+            document.activeElement.blur();
+
+            // 1gあたりのカロリー (100g換算から算出)
+            const calPerG = {
+                porridge: 70 / 100,
+                sasami: 100 / 100,
+                kamaboko: 90 / 100,
+                dry: 391 / 100
+            };
+
+            // 1. かまぼこ (目標の5%分、最大10g制限)
+            let kamabokoWeight = (target * 0.05) / calPerG.kamaboko;
+            if (kamabokoWeight > 10) kamabokoWeight = 10;
+            let kamabokoCal = kamabokoWeight * calPerG.kamaboko;
+
+            // 2. 鶏ささみ (目標の15%分、最大10g制限)
+            let sasamiWeight = (target * 0.15) / calPerG.sasami;
+            if (sasamiWeight > 10) sasamiWeight = 10;
+            let sasamiCal = sasamiWeight * calPerG.sasami;
+
+            // 残りの必要カロリー
+            let remainingCal = target - (kamabokoCal + sasamiCal);
+            
+            let dryCal = 0;
+            let porridgeCal = 0;
+
+            if (remainingCal > 0) {
+                // ドライフード(70%) : おかゆ(30%)
+                dryCal = remainingCal * 0.70;
+                porridgeCal = remainingCal * 0.30;
+            } else {
+                remainingCal = 0;
+            }
+
+            // 各グラム数の算出
+            let dryWeight = dryCal / calPerG.dry;
+            let porridgeWeight = porridgeCal / calPerG.porridge;
+
+            // トータルのグラム合計
+            let totalWeight = dryWeight + porridgeWeight + sasamiWeight + kamabokoWeight;
+
+            // 画面の書き換え (小数点第1位に丸める)
+            document.getElementById('weight-dry').innerText = dryWeight.toFixed(1) + 'g';
+            document.getElementById('weight-porridge').innerText = porridgeWeight.toFixed(1) + 'g';
+            document.getElementById('weight-sasami').innerText = sasamiWeight.toFixed(1) + 'g';
+            document.getElementById('weight-kamaboko').innerText = kamabokoWeight.toFixed(1) + 'g';
+            document.getElementById('weight-total').innerText = totalWeight.toFixed(1) + 'g';
+
+            // 内訳カロリー表示の更新
+            document.getElementById('cal-dry').innerText = `${dryCal.toFixed(1)} kcal`;
+            document.getElementById('cal-porridge').innerText = `${porridgeCal.toFixed(1)} kcal`;
+            document.getElementById('cal-sasami').innerText = `${sasamiCal.toFixed(1)} kcal`;
+            document.getElementById('cal-kamaboko').innerText = `${kamabokoCal.toFixed(1)} kcal`;
+
+            // 結果エリアを表示
+            const resultSec = document.getElementById('resultSection');
+            resultSec.classList.remove('hidden');
+            
+            // スムーズに結果までスクロール
+            setTimeout(() => {
+                resultSec.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }, 100);
+        }
+    </script>
+</body>
+</html>
